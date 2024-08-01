@@ -1,3 +1,5 @@
+import sys
+sys.path.append('..')
 from autotune.utils.config import parse_args
 from autotune.database.mysqldb import MysqlDB
 from autotune.database.postgresqldb import PostgresqlDB
@@ -12,7 +14,6 @@ if __name__ == '__main__':
 
 
     args_db, args_tune = parse_args(opt.config)
-
     if args_db['db'] == 'mysql':
         db = MysqlDB(args_db)
     elif args_db['db'] == 'postgresql':

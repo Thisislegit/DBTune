@@ -19,8 +19,10 @@ class DBTuner:
         self.y_variable = env.y_variable
         self.transfer_framework = args_tune['transfer_framework']
         self.hc_path = self.args_tune['data_repo']
-        self.space_transfer = eval(self.args_tune['space_transfer'])
-        self.auto_optimizer = eval(self.args_tune['auto_optimizer'])
+        # self.space_transfer = eval(self.args_tune['space_transfer'])
+        self.space_transfer = False
+        self.auto_optimizer = False
+        # self.auto_optimizer = eval(self.args_tune['auto_optimizer'])
 
         self.hcL = list()
         self.history_workload_data = list()
@@ -172,8 +174,11 @@ class DBTuner:
                        auto_optimizer_type= self.args_tune['auto_optimizer_type'],
                        hold_out_workload=self.args_db['workload'],
                        history_workload_data=self.history_workload_data,
-                       only_knob=eval(self.args_tune['only_knob']),
-                       only_range=eval(self.args_tune['only_range']))
+                    #    only_knob=eval(self.args_tune['only_knob']),
+                    #    only_range=eval(self.args_tune['only_range'])
+                        only_knob=False,
+                        only_range=False
+                       )
         history = bo.run()
         if history.num_objs == 1:
             import matplotlib.pyplot as plt

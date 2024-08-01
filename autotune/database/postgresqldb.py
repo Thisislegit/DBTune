@@ -14,10 +14,77 @@ from autotune.knobs import initialize_knobs, get_default_knobs
 
 dst_data_path = os.environ.get("DATADST")
 src_data_path = os.environ.get("DATASRC")
-RESTART_WAIT_TIME = 20
+RESTART_WAIT_TIME = 5
 TIMEOUT_CLOSE = 60
 
 logging.getLogger("paramiko").setLevel(logging.ERROR)
+        
+PREWARM = \
+"select pg_prewarm('aka_name', 'buffer', 'main'); \
+        select pg_prewarm('aka_title', 'buffer', 'main'); \
+        select pg_prewarm('cast_info', 'buffer', 'main'); \
+        select pg_prewarm('char_name', 'buffer', 'main'); \
+        select pg_prewarm('comp_cast_type', 'buffer', 'main'); \
+        select pg_prewarm('company_name', 'buffer', 'main'); \
+        select pg_prewarm('company_type', 'buffer', 'main'); \
+        select pg_prewarm('complete_cast', 'buffer', 'main'); \
+        select pg_prewarm('info_type', 'buffer', 'main'); \
+        select pg_prewarm('keyword', 'buffer', 'main'); \
+        select pg_prewarm('kind_type', 'buffer', 'main'); \
+        select pg_prewarm('link_type', 'buffer', 'main'); \
+        select pg_prewarm('movie_companies', 'buffer', 'main'); \
+        select pg_prewarm('movie_info', 'buffer', 'main'); \
+        select pg_prewarm('movie_info_idx', 'buffer', 'main'); \
+        select pg_prewarm('movie_keyword', 'buffer', 'main'); \
+        select pg_prewarm('movie_link', 'buffer', 'main'); \
+        select pg_prewarm('name', 'buffer', 'main'); \
+        select pg_prewarm('person_info', 'buffer', 'main'); \
+        select pg_prewarm('role_type', 'buffer', 'main'); \
+        select pg_prewarm('title', 'buffer', 'main'); \
+        select pg_prewarm('company_id_movie_companies', 'buffer', 'main'); \
+        select pg_prewarm('company_type_id_movie_companies', 'buffer', 'main'); \
+        select pg_prewarm('info_type_id_movie_info_idx', 'buffer', 'main'); \
+        select pg_prewarm('info_type_id_movie_info', 'buffer', 'main'); \
+        select pg_prewarm('info_type_id_person_info', 'buffer', 'main'); \
+        select pg_prewarm('keyword_id_movie_keyword', 'buffer', 'main'); \
+        select pg_prewarm('kind_id_aka_title', 'buffer', 'main'); \
+        select pg_prewarm('kind_id_title', 'buffer', 'main'); \
+        select pg_prewarm('linked_movie_id_movie_link', 'buffer', 'main'); \
+        select pg_prewarm('link_type_id_movie_link', 'buffer', 'main'); \
+        select pg_prewarm('movie_id_aka_title', 'buffer', 'main'); \
+        select pg_prewarm('movie_id_cast_info', 'buffer', 'main'); \
+        select pg_prewarm('movie_id_complete_cast', 'buffer', 'main'); \
+        select pg_prewarm('movie_id_movie_companies', 'buffer', 'main'); \
+        select pg_prewarm('movie_id_movie_info_idx', 'buffer', 'main'); \
+        select pg_prewarm('movie_id_movie_keyword', 'buffer', 'main'); \
+        select pg_prewarm('movie_id_movie_link', 'buffer', 'main'); \
+        select pg_prewarm('movie_id_movie_info', 'buffer', 'main'); \
+        select pg_prewarm('person_id_aka_name', 'buffer', 'main'); \
+        select pg_prewarm('person_id_cast_info', 'buffer', 'main'); \
+        select pg_prewarm('person_id_person_info', 'buffer', 'main'); \
+        select pg_prewarm('person_role_id_cast_info', 'buffer', 'main'); \
+        select pg_prewarm('role_id_cast_info', 'buffer', 'main'); \
+        select pg_prewarm('aka_name_pkey', 'buffer', 'main'); \
+        select pg_prewarm('aka_title_pkey', 'buffer', 'main'); \
+        select pg_prewarm('cast_info_pkey', 'buffer', 'main');  \
+        select pg_prewarm('char_name_pkey', 'buffer', 'main'); \
+        select pg_prewarm('comp_cast_type_pkey', 'buffer', 'main'); \
+        select pg_prewarm('company_name_pkey', 'buffer', 'main'); \
+        select pg_prewarm('company_type_pkey', 'buffer', 'main'); \
+        select pg_prewarm('complete_cast_pkey', 'buffer', 'main'); \
+        select pg_prewarm('info_type_pkey', 'buffer', 'main'); \
+        select pg_prewarm('keyword_pkey', 'buffer', 'main'); \
+        select pg_prewarm('kind_type_pkey', 'buffer', 'main'); \
+        select pg_prewarm('link_type_pkey', 'buffer', 'main'); \
+        select pg_prewarm('movie_companies_pkey', 'buffer', 'main'); \
+        select pg_prewarm('movie_info_idx_pkey', 'buffer', 'main'); \
+        select pg_prewarm('movie_info_pkey', 'buffer', 'main'); \
+        select pg_prewarm('movie_keyword_pkey', 'buffer', 'main'); \
+        select pg_prewarm('movie_link_pkey', 'buffer', 'main'); \
+        select pg_prewarm('name_pkey', 'buffer', 'main'); \
+        select pg_prewarm('role_type_pkey', 'buffer', 'main'); \
+        select pg_prewarm('title_pkey', 'buffer', 'main'); \
+" 
 
 
 class PostgresqlDB:
@@ -39,6 +106,7 @@ class PostgresqlDB:
 
         # remote information
         self.remote_mode = eval(args['remote_mode'])
+        self.remote_mode = False
         if self.remote_mode and self.remote_mode:
             self.ssh_user = args['ssh_user']
             self.ssh_pk_file = os.path.expanduser('~/.ssh/id_rsa')
@@ -245,6 +313,8 @@ class PostgresqlDB:
 
     def apply_knobs_online(self, knobs):
         # self.restart_rds()
+        if self.pid == 0:
+            self._start_postgres()
         # apply knobs remotely
         db_conn = PostgresqlConnector(host=self.host,
                                       port=self.port,
@@ -272,29 +342,41 @@ class PostgresqlDB:
 
         knobs_not_in_cnf = self._gen_config_file(knobs)
         sucess = self._start_postgres()
-        try:
-            logger.info('sleeping for {} seconds after restarting postgres'.format(RESTART_WAIT_TIME))
-            time.sleep(RESTART_WAIT_TIME)
 
-            if len(knobs_not_in_cnf) > 0:
-                tmp_rds = {}
-                for knob_rds in knobs_not_in_cnf:
-                    tmp_rds[knob_rds] = knobs[knob_rds]
-                self.apply_knobs_online(tmp_rds)
-        except:
-            sucess = False
+        db_conn = PostgresqlConnector(host=self.host,
+                                      port=self.port,
+                                      user=self.user,
+                                      passwd=self.passwd,
+                                      name=self.dbname)
+        import time
+        start_time = time.time()
+        db_conn.execute("load 'pg_prewarm'")
+        db_conn.execute(PREWARM)
+        logger.info('Prewarm done ! Took {} seconds'.format(time.time() - start_time))
+
+        # try:
+        logger.info('sleeping for {} seconds after restarting postgres'.format(RESTART_WAIT_TIME))
+        time.sleep(RESTART_WAIT_TIME)
+
+        if len(knobs_not_in_cnf) > 0:
+            tmp_rds = {}
+            for knob_rds in knobs_not_in_cnf:
+                tmp_rds[knob_rds] = knobs[knob_rds]
+            self.apply_knobs_online(tmp_rds)
+        # except:
+        #     sucess = False
 
         return sucess
 
     def _check_apply(self, db_conn, k, v0):
         sql = 'SHOW {};'.format(k)
         r = db_conn.fetch_results(sql)
-        if r[0]['Value'] == 'ON':
+        if r[0][k] == 'ON':
             vv = 1
-        elif r[0]['Value'] == 'OFF':
+        elif r[0][k] == 'OFF':
             vv = 0
         else:
-            vv = r[0]['Value'].strip()
+            vv = r[0][k].strip()
         if vv == v0:
             return False
         return True
@@ -304,22 +386,22 @@ class PostgresqlDB:
         r = db_conn.fetch_results(sql)
 
         # type convert
-        if v == 'ON':
-            v = 1
-        elif v == 'OFF':
-            v = 0
-        if r[0]['Value'] == 'ON':
-            v0 = 1
-        elif r[0]['Value'] == 'OFF':
-            v0 = 0
-        else:
-            try:
-                v0 = eval(r[0]['Value'])
-            except:
-                v0 = r[0]['Value'].strip()
-        if v0 == v:
-            return True
-
+        # if v == 'ON':
+        #     v = 1
+        # elif v == 'OFF':
+        #     v = 0
+        # if r[0]['Value'] == 'ON':
+        #     v0 = 1
+        # elif r[0]['Value'] == 'OFF':
+        #     v0 = 0
+        # else:
+        #     try:
+        #         v0 = eval(r[0]['Value'])
+        #     except:
+        #         v0 = r[0]['Value'].strip()
+        # if v0 == v:
+        #     return True
+        v0 = eval(r[0].get(k))
 
         if str(v).isdigit():
             sql = "SET {}={}".format(k, v)

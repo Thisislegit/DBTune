@@ -30,7 +30,8 @@ class DBEnv:
         self.knobs_detail = initialize_knobs(args['knob_config_file'], int(args['knob_num']))
         self.default_knobs = get_default_knobs()
         self.online_mode = eval(args['online_mode'])
-        self.remote_mode = eval(args['remote_mode'])
+        # self.remote_mode = eval(args['remote_mode'])
+        self.remote_mode = False
         self.oltpbench_config_xml = args['oltpbench_config_xml']
         self.step_count = 0
         self.connect_sucess = True
@@ -392,39 +393,39 @@ class DBEnv:
             else:
                 knobs[k] = self.knobs_detail[k]['default']
 
-        try:
-            timeout, metrics, internal_metrics, resource = self.step_GP(knobs, collect_resource=True)
+        # try:
+        timeout, metrics, internal_metrics, resource = self.step_GP(knobs, collect_resource=True)
 
-            if timeout:
-                trial_state = TIMEOUT
-            else:
-                trial_state = SUCCESS
+        if timeout:
+            trial_state = TIMEOUT
+        else:
+            trial_state = SUCCESS
 
-            external_metrics = {
-                'tps': metrics[0],
-                'lat': metrics[1],
-                'qps': metrics[2],
-                'tpsVar': metrics[3],
-                'latVar': metrics[4],
-                'qpsVar': metrics[5],
-            }
+        external_metrics = {
+            'tps': metrics[0],
+            'lat': metrics[1],
+            'qps': metrics[2],
+            'tpsVar': metrics[3],
+            'latVar': metrics[4],
+            'qpsVar': metrics[5],
+        }
 
-            resource = {
-                'cpu': resource[0],
-                'readIO': resource[1],
-                'writeIO': resource[2],
-                'IO': resource[1] + resource[2],
-                'virtualMem': resource[3],
-                'physical': resource[4],
-                'dirty': resource[5],
-                'hit': resource[6],
-                'data': resource[7],
-            }
+        resource = {
+            'cpu': resource[0],
+            'readIO': resource[1],
+            'writeIO': resource[2],
+            'IO': resource[1] + resource[2],
+            'virtualMem': resource[3],
+            'physical': resource[4],
+            'dirty': resource[5],
+            'hit': resource[6],
+            'data': resource[7],
+        }
 
-            res = dict(external_metrics, **resource)
-            objs = self.get_objs(res)
-            constraints = self.get_constraints(res)
-            return objs, constraints, external_metrics, resource, list(internal_metrics), self.info, trial_state
+        res = dict(external_metrics, **resource)
+        objs = self.get_objs(res)
+        constraints = self.get_constraints(res)
+        return objs, constraints, external_metrics, resource, list(internal_metrics), self.info, trial_state
 
-        except:
-            return None, None, {}, {}, [], self.info, FAILED
+        # except:
+        #     return None, None, {}, {}, [], self.info, FAILED

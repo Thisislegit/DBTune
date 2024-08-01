@@ -5,10 +5,11 @@ printf "query\tlat(ms)\n" > $3
 
 while read a
   do
-  {
+  { 
+    echo $a
     query=`echo ${a%.*}`
     start=$(date +%s%N)
-    result=`psql imdbload < $2/$a`
+    result=`/data3/chenx/projects/pg_install/bin/psql imdbload < $2/$a`
     if [[ -z $result ]];
     then
       lat=240000
@@ -17,5 +18,5 @@ while read a
       lat=$(( ($end - $start) / 1000000 ))
     fi
   printf "$query\t$lat\n" >> $3
-  } &
+  } 
 done < $1

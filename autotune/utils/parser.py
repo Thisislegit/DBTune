@@ -133,7 +133,8 @@ def parse_job(file_path, select_file, timeout=4):
     for i in range(0, num_sql - measured_num):
         latL.append(timeout)
 
-    lat = np.percentile(latL, 95)
+    # lat = np.percentile(latL, 95)
+    lat = np.sum(latL)
     total_time = min(timeout, np.max(latL))
     tps = len(latL) * 60. / total_time
 
